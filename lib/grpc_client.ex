@@ -1,0 +1,2 @@
+defmodule GrpcClient do
+end
