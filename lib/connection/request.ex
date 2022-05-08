@@ -242,11 +242,11 @@ defmodule GrpcClient.Connection.Request do
           GenServer.reply(request.from, {:ok, request.request_ref})
 
           request = put_in(request.from, nil)
-          put_in(request.response.data, rest) |> IO.inspect()
+          put_in(request.response.data, rest)
         else
           send(subscriber, through.(message, request.request_ref))
 
-          put_in(request.response.data, rest) |> IO.inspect()
+          put_in(request.response.data, rest)
         end
 
       nil ->
