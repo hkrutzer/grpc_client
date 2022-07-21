@@ -3,7 +3,7 @@
 This is a gRPC client based on the one in [Spear](https://github.com/NFIBrokerage/spear/), using Mint. It is currently in alpha stage.
 
 ## Example
-```
+```elixir
 msg = %Routeguide.Point{latitude: 408_122_808, longitude: -743_999_179}
 
 rpc = %GrpcClient.Rpc{
