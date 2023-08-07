@@ -4,7 +4,7 @@ defmodule GrpcClient.MixProject do
   def project do
     [
       app: :grpc_client,
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -37,7 +37,7 @@ defmodule GrpcClient.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:castore, "~> 0.1.0"},
+      {:castore, "~> 0.1 or ~> 1.0"},
       {:connection, "~> 1.1"},
       {:mint, "~> 1.4"},
       {:nimble_options, "~> 0.4.0"},
