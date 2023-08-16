@@ -31,9 +31,9 @@ defmodule GrpcClient.Connection.Config do
   * `:mint_opts` - (default: `#{inspect(@default_mint_opts)}`) a keyword
     list of options to pass to mint. The default values cannot be overridden.
 
-  * `:host` - (default: `"localhost"`) the host address of the EventStoreDB
+  * `:host` - (default: `"http://localhost"`) the host address of the gRPC server
 
-  * `:port` - (default: `2113`) the external gRPC port of the EventStoreDB
+  * `:port` - (default: `2113`) the external gRPC port of the gRPC server
 
   * `:tls?` - (default: `false`) whether or not to use TLS to secure the
     connection to the EventStoreDB

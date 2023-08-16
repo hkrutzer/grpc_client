@@ -25,21 +25,13 @@ defmodule GrpcClient.Connection.ConfigTest do
            }
   end
 
-  test "works without a protocol set" do
-    assert Config.new(url: "example.org") == %GrpcClient.Connection.Config{
-             host: "example.org",
-             keep_alive_interval: 10000,
-             keep_alive_timeout: 10000,
-             mint_opts: [protocols: [:http2], mode: :active],
-             port: 80,
-             scheme: :http,
-             ssl_key_log_file: nil
-           }
-  end
-
   test "fails with invalid configuration" do
     assert_raise RuntimeError, fn ->
       assert Config.new(url: "1234") == %{}
+    end
+
+    assert_raise RuntimeError, fn ->
+      assert Config.new(url: "example.org") == %{}
     end
   end
 
