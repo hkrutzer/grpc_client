@@ -3,7 +3,6 @@ defmodule GrpcClientTest.ConnectionTest do
 
   alias GrpcClient.Connection
   alias GrpcClient.Request
-  alias GrpcClient.Rpc
 
   setup do
     {:ok, conn} = Connection.start_link(url: "http://localhost:50051")
@@ -164,7 +163,7 @@ defmodule GrpcClientTest.ConnectionTest do
   end
 
   test "ping" do
-    {:ok, conn} =
+    {:ok, _conn} =
       Connection.start_link(
         url: "http://localhost:50051",
         keep_alive_interval: 100
