@@ -58,13 +58,8 @@ defmodule GrpcClient.Connection do
 
   @impl Connection
   def connect(_, s) do
-    case do_connect(s.config) do
-      {:ok, conn} ->
-        {:ok, %__MODULE__{s | conn: conn, keep_alive_timer: KeepAliveTimer.start(s.config)}}
-
-      {:error, _reason} ->
-        # TODO
-        {:backoff, 500, s}
+    with {:ok, conn} <- do_connect(s.config) do
+      {:ok, %__MODULE__{s | conn: conn, keep_alive_timer: KeepAliveTimer.start(s.config)}}
     end
   end
 
@@ -100,9 +95,6 @@ defmodule GrpcClient.Connection do
          {:ok, conn} <- Mint.HTTP2.stream_request_body(s.conn, request_ref, wire_data) do
       {:noreply, put_in(s.conn, conn)}
     else
-      nil ->
-        {:noreply, s}
-
       {:error, conn, reason} ->
         s = put_in(s.conn, conn)
 
@@ -222,8 +214,7 @@ defmodule GrpcClient.Connection do
   def handle_info(:keep_alive_expired, s), do: {:disconnect, :keep_alive_timeout, s}
 
   def handle_info(message, s) do
-    with %Mint.HTTP2{} = conn <- s.conn,
-         {:ok, conn, responses} <- Mint.HTTP2.stream(conn, message) do
+    with {:ok, conn, responses} <- Mint.HTTP2.stream(s.conn, message) do
       {:noreply, put_in(s.conn, conn) |> handle_responses(responses)}
     else
       {:error, conn, reason, responses} ->
