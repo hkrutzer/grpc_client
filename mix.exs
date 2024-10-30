@@ -5,7 +5,7 @@ defmodule GrpcClient.MixProject do
     [
       app: :grpc_client,
       version: "0.1.3",
-      elixir: "~> 1.13",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [
@@ -42,7 +42,8 @@ defmodule GrpcClient.MixProject do
       {:mint, "~> 1.4"},
       {:nimble_options, "~> 1.0.2"},
       {:protox, "~> 1.6"},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 
