@@ -6,20 +6,18 @@ defmodule GrpcClient.Connection.Request do
   @type t :: %{
           continuation: Enumerable.continuation(),
           request_ref: Mint.Types.request_ref(),
-          monitor_ref: reference() | nil,
           buffer: binary(),
-          from: GenServer.from(),
+          from: :gen_statem.from(),
           response: GrpcClient.Connection.Response.t(),
           status: :streaming | :done,
-          type: :request | {:subscription, pid(), (binary -> any())},
+          type: :request | {:stream, pid()},
           rpc: GrpcClient.Rpc.t()
         }
 
   defstruct [
     :continuation,
-    :request_ref,
-    :monitor_ref,
     :buffer,
+    :request_ref,
     :from,
     :response,
     :status,
@@ -49,7 +47,6 @@ defmodule GrpcClient.Connection.Request do
       continuation: continuation,
       buffer: <<>>,
       request_ref: request_ref,
-      monitor_ref: monitor_subscription(type),
       from: from,
       response: %GrpcClient.Connection.Response{type: {rpc.service_module, rpc.response_type}},
       status: :streaming,
@@ -77,12 +74,34 @@ defmodule GrpcClient.Connection.Request do
 
   @spec emit_messages(%Connection{}, %__MODULE__{}) ::
           {:ok, %Connection{}} | {:error, %Connection{}, reason :: any()}
+  def emit_messages(state, %__MODULE__{status: :done, buffer: <<>>}), do: {:ok, state}
+
+  def emit_messages(state, %__MODULE__{status: :done, buffer: buffer} = request) do
+    smallest_window = get_smallest_window(state.conn, request.request_ref)
+
+    {bytes_to_send, size, rest} =
+      case buffer do
+        <<bytes_to_send::binary-size(smallest_window), rest::binary>> ->
+          {bytes_to_send, smallest_window, rest}
+
+        ^buffer ->
+          {buffer, byte_size(buffer), <<>>}
+      end
+
+    state
+    |> put_request(%__MODULE__{request | buffer: rest})
+    |> stream_messages(
+      request.request_ref,
+      [{bytes_to_send, size}]
+    )
+  end
+
   def emit_messages(state, %__MODULE__{buffer: <<>>, continuation: continuation} = request) do
     smallest_window = get_smallest_window(state.conn, request.request_ref)
 
     {:cont, {[], 0, smallest_window}}
     |> continuation.()
-    |> handle_contination(state, request)
+    |> handle_continuation(state, request)
   end
 
   def emit_messages(
@@ -105,14 +124,15 @@ defmodule GrpcClient.Connection.Request do
         # so we resume the happy path of cramming as many messages as possible
         # into frames
         buffer_size = byte_size(buffer)
+        request = put_in(request.buffer, <<>>)
 
         {:cont, {[{buffer, buffer_size}], buffer_size, smallest_window}}
         |> continuation.()
-        |> handle_contination(state, request)
+        |> handle_continuation(state, request)
     end
   end
 
-  defp handle_contination(
+  defp handle_continuation(
          {finished, {message_buffer, _buffer_size, _max_size}},
          state,
          request
@@ -135,7 +155,7 @@ defmodule GrpcClient.Connection.Request do
     )
   end
 
-  defp handle_contination(
+  defp handle_continuation(
          {:suspended,
           {[{overload_message, overload_message_size} | messages_that_fit], buffer_size,
            max_size}, next_continuation},
@@ -207,56 +227,64 @@ defmodule GrpcClient.Connection.Request do
   end
 
   def continue_requests(state) do
-    state.requests
-    |> Enum.filter(fn
-      {_request_ref, %__MODULE__{} = request} -> request.status == :streaming
-      _ -> false
+    Enum.reduce(state.requests, state, fn
+      {_request_ref, %__MODULE__{status: status, buffer: buffer} = request}, state
+      when status == :streaming or buffer != <<>> ->
+        continue_request(state, request)
+
+      _, state ->
+        state
     end)
-    |> Enum.reduce(state, fn {request_ref, request}, state ->
-      case emit_messages(state, request) do
-        {:ok, state} ->
-          state
+  end
 
-        {:error, state, reason} ->
-          {%{from: from}, state} = pop_in(state.requests[request_ref])
+  def continue_request(state, %__MODULE__{type: {:stream, subscriber}} = request) do
+    case emit_messages(state, request) do
+      {:ok, state} ->
+        state
 
-          GenServer.reply(from, {:error, reason})
+      {:error, state, reason} ->
+        # TODO See if we need to handle this differently
+        send(subscriber, {request.request_ref, {:error, reason}})
 
-          state
-      end
-    end)
+        state
+    end
+  end
+
+  def continue_request(state, request) do
+    case emit_messages(state, request) do
+      {:ok, state} ->
+        state
+
+      {:error, state, reason} ->
+        {%{from: from}, state} = pop_in(state.requests[request.request_ref])
+
+        :gen_statem.reply(from, {:error, reason})
+
+        state
+    end
   end
 
   def handle_data(%__MODULE__{type: :request} = request, new_data) do
     update_in(request.response.data, fn data -> data <> new_data end)
   end
 
-  def handle_data(%__MODULE__{type: {:subscription, subscriber, through}} = request, new_data) do
+  def handle_data(%__MODULE__{type: {:stream, subscriber}} = request, new_data) do
     case GrpcClient.Encoding.from_binary_data(
            request.response.data <> new_data,
            request.rpc.response_type
          ) do
       {message, rest} ->
-        if request.rpc.request_stream? and request.rpc.response_stream? and
-             not is_nil(request.from) do
-          GenServer.reply(request.from, {:ok, request.request_ref})
+        send(subscriber, {request.request_ref, message})
 
-          request = put_in(request.from, nil)
-          put_in(request.response.data, rest)
-        else
-          send(subscriber, through.(message, request.request_ref))
-
-          put_in(request.response.data, rest)
-        end
+        put_in(request.response.data, rest)
+        |> handle_data(<<>>)
 
       nil ->
         update_in(request.response.data, fn data -> data <> new_data end)
     end
   end
 
-  defp monitor_subscription({:subscription, subscriber, _through}) do
-    Process.monitor(subscriber)
+  def append_data(request, data) do
+    update_in(request.buffer, &(&1 <> data))
   end
-
-  defp monitor_subscription(_), do: nil
 end

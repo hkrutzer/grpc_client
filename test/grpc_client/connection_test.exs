@@ -2,7 +2,6 @@ defmodule GrpcClientTest.ConnectionTest do
   use ExUnit.Case
 
   alias GrpcClient.Connection
-  alias GrpcClient.Request
 
   setup do
     {:ok, conn} = Connection.start_link(url: "http://localhost:50051")
@@ -23,10 +22,7 @@ defmodule GrpcClientTest.ConnectionTest do
       path: "/routeguide.RouteGuide/GetFeature"
     }
 
-    request = %{Request.from_rpc(rpc) | messages: [msg]}
-
-    {:ok, resp} = GenServer.call(conn, {:request, request}, 5000)
-    response = GrpcClient.Response.from_connection_response(resp, request.rpc, false)
+    {:ok, response} = GrpcClient.Connection.rpc(conn, rpc, [msg])
 
     assert response == %GrpcClient.Response{
              data: %Routeguide.Feature{
@@ -67,16 +63,14 @@ defmodule GrpcClientTest.ConnectionTest do
       path: "/routeguide.RouteGuide/ListFeatures"
     }
 
-    request = %{Request.from_rpc(rpc) | messages: [msg]}
-
-    {:ok, resp} = GenServer.call(conn, {:request, request}, 5000)
+    {:ok, resp} = GrpcClient.Connection.rpc(conn, rpc, [msg])
 
     %GrpcClient.Response{
       data: stream,
       message: "",
       status: :ok,
       status_code: 0
-    } = GrpcClient.Response.from_connection_response(resp, request.rpc, false)
+    } = resp
 
     assert Enum.into(stream, []) ==
              [
@@ -117,15 +111,12 @@ defmodule GrpcClientTest.ConnectionTest do
       path: "/routeguide.RouteGuide/RouteChat"
     }
 
-    through = fn message, request_ref -> {request_ref, message} end
+    {:ok, ref} = GrpcClient.Connection.rpc(conn, rpc, [])
 
-    request = Request.from_rpc(rpc)
-
-    {:ok, resp} = GenServer.call(conn, {{:subscription, self(), through}, request}, 5000)
-    GenServer.cast(conn, {:push, resp, msg})
+    GrpcClient.Connection.stream(conn, ref, msg)
 
     assert_receive(
-      {_,
+      {_ref,
        %Routeguide.RouteNote{
          location: %Routeguide.Point{
            latitude: 409_146_138,
@@ -135,42 +126,21 @@ defmodule GrpcClientTest.ConnectionTest do
        }}
     )
 
-    GenServer.cast(conn, {:push, resp, %{msg | message: "test msg 2"}})
+    GrpcClient.Connection.stream(conn, ref, %{msg | message: "test msg 2"})
 
-    assert_receive(
-      {_,
-       %Routeguide.RouteNote{
-         location: %Routeguide.Point{
-           latitude: 409_146_138,
-           longitude: -750_000_000
-         },
-         message: "test message please ignore"
-       }}
-    )
+    assert_receive({
+      _ref,
+      %Routeguide.RouteNote{
+        location: %Routeguide.Point{
+          latitude: 409_146_138,
+          longitude: -750_000_000
+        },
+        message: "test msg 2"
+      }
+    })
 
-    assert_receive(
-      {_,
-       %Routeguide.RouteNote{
-         location: %Routeguide.Point{
-           latitude: 409_146_138,
-           longitude: -750_000_000
-         },
-         message: "test msg 2"
-       }}
-    )
+    GrpcClient.Connection.stream_end(conn, ref)
 
-    # TODO send more
-  end
-
-  test "ping" do
-    {:ok, _conn} =
-      Connection.start_link(
-        url: "http://localhost:50051",
-        keep_alive_interval: 100
-      )
-
-    Process.sleep(500)
-
-    # TODO ensure we actually pinged
+    assert_receive({^ref, :eos, :ok})
   end
 end

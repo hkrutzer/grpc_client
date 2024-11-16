@@ -14,6 +14,4 @@ defmodule GrpcClient.EncodingTest do
 
     assert decoded == msg
   end
-
-  test "invalid data"
 end

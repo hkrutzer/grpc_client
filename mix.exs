@@ -38,10 +38,10 @@ defmodule GrpcClient.MixProject do
   defp deps do
     [
       {:castore, "~> 0.1 or ~> 1.0"},
-      {:connection, "~> 1.1"},
       {:mint, "~> 1.4"},
       {:nimble_options, "~> 1.0.2"},
       {:protox, "~> 1.6"},
+      {:toxiproxy_ex, "~> 2.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
