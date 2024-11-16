@@ -24,3 +24,5 @@ grpc_client-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+__pycache__/

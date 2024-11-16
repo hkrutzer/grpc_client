@@ -1,5 +1,9 @@
 defmodule GrpcClient.Connection.Config do
-  @default_mint_opts [protocols: [:http2], mode: :active]
+  @default_mint_opts [
+    protocols: [:http2],
+    mode: :active,
+    tcp_opts: [nodelay: true]
+  ]
 
   @options_schema [
     url: [
@@ -57,7 +61,7 @@ defmodule GrpcClient.Connection.Config do
   require Logger
 
   @typedoc """
-  Configuration for a `TODO`.
+  gRPC connection configuration
   """
   @type t :: %__MODULE__{
           scheme: :http | :https,

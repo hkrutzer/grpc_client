@@ -8,7 +8,7 @@ defmodule GrpcClient.Connection.ConfigTest do
              host: "example.org",
              keep_alive_interval: 10000,
              keep_alive_timeout: 10000,
-             mint_opts: [protocols: [:http2], mode: :active],
+             mint_opts: [protocols: [:http2], mode: :active, tcp_opts: [nodelay: true]],
              port: 80,
              scheme: :http,
              ssl_key_log_file: nil
@@ -18,7 +18,7 @@ defmodule GrpcClient.Connection.ConfigTest do
              host: "example.org",
              keep_alive_interval: 10000,
              keep_alive_timeout: 10000,
-             mint_opts: [protocols: [:http2], mode: :active],
+             mint_opts: [protocols: [:http2], mode: :active, tcp_opts: [nodelay: true]],
              port: 443,
              scheme: :https,
              ssl_key_log_file: nil
