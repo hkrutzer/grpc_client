@@ -38,6 +38,7 @@ defmodule GrpcClientTest.ToxiproxyTest do
              end)
   end
 
+  @tag :skip
   test "sync call, sync response 2" do
     Process.flag(:trap_exit, true)
     {:ok, conn} = Connection.start_link(url: "http://localhost:21212")

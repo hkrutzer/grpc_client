@@ -10,6 +10,12 @@ permissions:
 
 jobs:
   test:
+    services:
+      toxiproxy:
+        image: ghcr.io/shopify/toxiproxy
+        ports:
+          - 8474:8474
+          - 21212:21212
 
     name: Build and test
     runs-on: ubuntu-latest
@@ -25,9 +31,17 @@ jobs:
           - pair:
               elixir: "1.17.3"
               otp: "27.1"
+          - pair:
+              elixir: "1.18.3"
+              otp: "27.3"
               lint: lint
     steps:
     - uses: actions/checkout@v4
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+    - name: Start Python API Server (Background)
+      run: |
+        uv run --directory test_server route_guide_server.py &
     - name: Set up Elixir
       uses: erlef/setup-beam@main
       with:
@@ -49,4 +63,8 @@ jobs:
     - run: mix compile --no-optional-deps --warnings-as-errors
       if: ${{ matrix.pair.lint }}
     - run: mix dialyzer
+      if: ${{ matrix.pair.lint }}
+    - run: mix test --slowest 5
+      if: ${{ ! matrix.pair.lint }}
+    - run: mix test --slowest 5 --warnings-as-errors
       if: ${{ matrix.pair.lint }}
