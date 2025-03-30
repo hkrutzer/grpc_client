@@ -139,8 +139,20 @@ defmodule GrpcClientTest.ConnectionTest do
       }
     })
 
-    GrpcClient.Connection.stream_end(conn, ref)
+    request_id = GrpcClient.Connection.stream_end(conn, ref)
+
+    assert({:reply, :ok} = :gen_statem.wait_response(request_id))
 
     assert_receive({^ref, :eos, :ok})
+  end
+
+  test "attempting to close a non-existent stream", %{conn: conn} do
+    Process.flag(:trap_exit, true)
+    GrpcClient.Connection.stream_end(conn, make_ref())
+
+    assert_receive(
+      {:DOWN, _ref, :process, _process,
+       {:shutdown, %Mint.HTTPError{reason: :unknown_request_to_stream}}}
+    )
   end
 end
