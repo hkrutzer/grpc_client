@@ -54,8 +54,14 @@ defmodule GrpcClient.Connection do
     :gen_statem.cast(pid, {:stream, ref, payload})
   end
 
+  @doc """
+  Send a stream end signal to the server.
+
+  This can be waited for with `:gen_statem.wait_response/1`.
+  """
+  @spec stream_end(pid(), reference()) :: :gen_statem.request_id()
   def stream_end(pid, ref) do
-    :gen_statem.cast(pid, {:stream_end, ref})
+    :gen_statem.send_request(pid, {:stream_end, ref})
   end
 
   def stop(pid) do
@@ -138,9 +144,13 @@ defmodule GrpcClient.Connection do
     end
   end
 
-  def connected(:cast, {:stream_end, request_ref}, state) when is_reference(request_ref) do
+  def connected({:call, from}, {:stream_end, request_ref}, state)
+      when is_reference(request_ref) do
     with {:ok, conn} <- Mint.HTTP2.stream_request_body(state.conn, request_ref, :eof) do
-      {:keep_state, put_in(state.conn, conn)}
+      {:keep_state, put_in(state.conn, conn), [{:reply, from, :ok}]}
+    else
+      {:error, conn, reason} ->
+        {:stop, {:shutdown, reason}, put_in(state.conn, conn)}
     end
   end
 
