@@ -40,7 +40,7 @@ defmodule GrpcClient.MixProject do
       {:castore, "~> 0.1 or ~> 1.0"},
       {:mint, "~> 1.4"},
       {:nimble_options, "~> 1.1.1"},
-      {:protox, "~> 2.0"},
+      {:protox, "~> 1.6"},
       {:toxiproxy_ex, "~> 2.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}

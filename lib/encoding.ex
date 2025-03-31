@@ -4,11 +4,13 @@ defmodule GrpcClient.Encoding do
 
   @spec to_binary_data(struct()) :: {iodata(), pos_integer()}
   def to_binary_data(%module{} = message) do
-    {:ok, iodata, iodata_size} = module.encode(message)
+    {:ok, encoded} = module.encode(message)
+    iodata = :binary.list_to_bin(encoded)
+    length = byte_size(iodata)
     compressed = 0
 
-    {[<<compressed::unsigned-integer-8, iodata_size::unsigned-big-integer-8-unit(4)>>, iodata],
-     1 + 4 + iodata_size}
+    {[<<compressed::unsigned-integer-8, length::unsigned-big-integer-8-unit(4)>>, iodata],
+     1 + 4 + length}
   end
 
   # Parse DATA frame(s)
