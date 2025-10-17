@@ -160,7 +160,7 @@ defmodule GrpcClient.Connection.Request do
           {[{overload_message, overload_message_size} | messages_that_fit], buffer_size,
            max_size}, next_continuation},
          state,
-         request
+         %__MODULE__{} = request
        ) do
     # stream messages    :list.reverse(messages_that_fit)
     # turn overload_message into a binary, break it down to allowed size
