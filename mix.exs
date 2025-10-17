@@ -37,7 +37,6 @@ defmodule GrpcClient.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:castore, "~> 0.1 or ~> 1.0"},
       {:mint, "~> 1.4"},
       {:nimble_options, "~> 1.1.1"},
       {:protox, "~> 2.0"},
