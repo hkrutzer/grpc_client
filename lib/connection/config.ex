@@ -58,8 +58,6 @@ defmodule GrpcClient.Connection.Config do
 
   # This file is based in part on https://github.com/NFIBrokerage/spear/blob/9177196721d943fda2ee1a70698580b036f220ee/lib/spear/connection/configuration.ex
 
-  require Logger
-
   @typedoc """
   gRPC connection configuration
   """

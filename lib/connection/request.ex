@@ -81,7 +81,7 @@ defmodule GrpcClient.Connection.Request do
 
     {bytes_to_send, size, rest} =
       case buffer do
-        <<bytes_to_send::binary-size(smallest_window), rest::binary>> ->
+        <<bytes_to_send::binary-size(^smallest_window), rest::binary>> ->
           {bytes_to_send, smallest_window, rest}
 
         ^buffer ->
@@ -111,7 +111,7 @@ defmodule GrpcClient.Connection.Request do
     smallest_window = get_smallest_window(state.conn, request.request_ref)
 
     case buffer do
-      <<bytes_to_send::binary-size(smallest_window), rest::binary>> ->
+      <<bytes_to_send::binary-size(^smallest_window), rest::binary>> ->
         state
         |> put_request(%__MODULE__{request | buffer: rest})
         |> stream_messages(
@@ -168,7 +168,7 @@ defmodule GrpcClient.Connection.Request do
     # add the rest of overload_message binary to the buffer
     fittable_size = max_size - (buffer_size - overload_message_size)
 
-    <<fittable_binary::binary-size(fittable_size), overload_binary::binary>> =
+    <<fittable_binary::binary-size(^fittable_size), overload_binary::binary>> =
       IO.iodata_to_binary(overload_message)
 
     request = %__MODULE__{
