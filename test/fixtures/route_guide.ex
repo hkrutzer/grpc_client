@@ -3,7 +3,7 @@
 defmodule Routeguide.Rectangle do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
+    Protox.check_generator_version(2)
   else
     raise "This code was generated with protox 2 but the runtime is using an older version of protox."
   end
@@ -16,6 +16,42 @@ defmodule Routeguide.Rectangle do
   defstruct hi: nil, lo: nil, __uf__: []
 
   (
+    @schema Protox.MessageSchema.expand!(
+              Routeguide.Rectangle,
+              :proto3,
+              [
+                {:hi, 2, :optional, {:scalar, nil}, {:message, Routeguide.Point}},
+                {:lo, 1, :optional, {:scalar, nil}, {:message, Routeguide.Point}}
+              ],
+              %{
+                cc_enable_arenas: nil,
+                cc_generic_services: nil,
+                csharp_namespace: nil,
+                deprecated: nil,
+                go_package: nil,
+                java_generate_equals_and_hash: nil,
+                java_generic_services: nil,
+                java_multiple_files: true,
+                java_outer_classname: "RouteGuideProto",
+                java_package: "io.grpc.examples.routeguide",
+                java_string_check_utf8: nil,
+                objc_class_prefix: "RTG",
+                optimize_for: nil,
+                php_class_prefix: nil,
+                php_generic_services: nil,
+                php_metadata_namespace: nil,
+                php_namespace: nil,
+                py_generic_services: nil,
+                ruby_package: nil,
+                swift_prefix: nil,
+                uninterpreted_option: []
+              }
+            )
+    @spec schema() :: Protox.MessageSchema.t()
+    def schema(), do: @schema
+  )
+
+  (
     (
       @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
       def encode(msg) do
@@ -26,60 +62,65 @@ defmodule Routeguide.Rectangle do
 
       @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
       def encode!(msg) do
-        {_acc = [], _acc_size = 0}
-        |> encode_hi(msg)
-        |> encode_lo(msg)
-        |> encode_unknown_fields(msg)
+        encode_internal!(msg)
+      rescue
+        e in [Protox.EncodingError, Protox.RequiredFieldsError] ->
+          reraise e, __STACKTRACE__
+
+        e ->
+          encode_diagnose!(msg)
+          reraise e, __STACKTRACE__
+      end
+
+      @doc false
+      def encode_internal!(msg) do
+        {[], 0} |> encode_hi(msg) |> encode_lo(msg) |> encode_unknown_fields(msg)
       end
     )
 
     defp encode_hi({acc, acc_size}, msg) do
-      if msg.hi == nil do
+      if :erlang.map_get(:hi, msg) == nil do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_message(msg.hi)
-        {["\x12", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          %{__struct__: Routeguide.Point} = child = :erlang.map_get(:hi, msg)
+          {child_bytes, child_size} = Routeguide.Point.encode_internal!(child)
+          child_size_bytes = Protox.Varint.encode(child_size)
+        )
+
+        {["\x12", child_size_bytes, child_bytes | acc],
+         acc_size + 1 + (byte_size(child_size_bytes) + child_size)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:hi, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_lo({acc, acc_size}, msg) do
-      if msg.lo == nil do
+      if :erlang.map_get(:lo, msg) == nil do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_message(msg.lo)
-        {["\n", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          %{__struct__: Routeguide.Point} = child = :erlang.map_get(:lo, msg)
+          {child_bytes, child_size} = Routeguide.Point.encode_internal!(child)
+          child_size_bytes = Protox.Varint.encode(child_size)
+        )
+
+        {["\n", child_size_bytes, child_bytes | acc],
+         acc_size + 1 + (byte_size(child_size_bytes) + child_size)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:lo, "invalid field value"), __STACKTRACE__
     end
 
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+    (
+      defp encode_diagnose!(%{__struct__: __MODULE__} = msg) do
+        Protox.Encode.find_invalid_field!(msg, [
+          {:hi, &encode_hi/2, Routeguide.Point},
+          {:lo, &encode_lo/2, Routeguide.Point}
+        ])
+      end
 
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+      defp encode_diagnose!(_malformed_input), do: :ok
+    )
 
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
+    defp encode_unknown_fields(acc, msg) do
+      Protox.Encode.encode_unknown_fields(acc, :erlang.map_get(:__uf__, msg))
     end
   )
 
@@ -95,149 +136,109 @@ defmodule Routeguide.Rectangle do
 
       (
         @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(bytes, struct(Routeguide.Rectangle))
-        end
+        def decode!(bytes), do: parse_key_value(bytes, __struct__())
       )
     )
 
     (
       @spec parse_key_value(binary(), struct()) :: struct()
       defp parse_key_value(<<>>, msg) do
-        msg
+        case :erlang.map_get(:__uf__, msg) do
+          [_first, _second | _tail] = values -> %{msg | __uf__: :lists.reverse(values)}
+          _empty_or_single -> msg
+        end
       end
 
       defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
+        case bytes do
+          <<_tag::5, 3::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 3")
 
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
+          <<_tag::5, 4::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 4")
 
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
+          <<_tag::5, 6::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 6")
 
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
+          <<_tag::5, 7::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 7")
 
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
+          <<0::5, _wire_type::3, _rest::binary>> ->
+            raise %Protox.IllegalTagError{}
 
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-              {[hi: Protox.MergeMessage.merge(msg.hi, Routeguide.Point.decode!(delimited))], rest}
+          <<"\x12", bytes::binary>> ->
+            {delimited, rest} = Protox.Decode.parse_delimited(bytes)
 
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-              {[lo: Protox.MergeMessage.merge(msg.lo, Routeguide.Point.decode!(delimited))], rest}
+            msg = %{
+              msg
+              | hi:
+                  case :erlang.map_get(:hi, msg) do
+                    nil ->
+                      Routeguide.Point.decode!(delimited)
 
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
+                    previous_value ->
+                      Protox.MergeMessage.merge(
+                        previous_value,
+                        Routeguide.Point.decode!(delimited)
+                      )
+                  end
+            }
 
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
+            parse_key_value(rest, msg)
+
+          <<"\n", bytes::binary>> ->
+            {delimited, rest} = Protox.Decode.parse_delimited(bytes)
+
+            msg = %{
+              msg
+              | lo:
+                  case :erlang.map_get(:lo, msg) do
+                    nil ->
+                      Routeguide.Point.decode!(delimited)
+
+                    previous_value ->
+                      Protox.MergeMessage.merge(
+                        previous_value,
+                        Routeguide.Point.decode!(delimited)
+                      )
+                  end
+            }
+
+            parse_key_value(rest, msg)
+
+          <<bytes::binary>> ->
+            {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
+            {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
+            msg = %{msg | __uf__: [value | :erlang.map_get(:__uf__, msg)]}
+            parse_key_value(rest, msg)
+        end
       end
     )
   )
 
   (
     @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
+    def unknown_fields(msg), do: msg.__uf__
 
     @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
+    def unknown_fields_name(), do: :__uf__
 
     @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
+    def clear_unknown_fields(msg), do: struct!(msg, __uf__: [])
   )
 
   (
     @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
+            {:ok, Protox.Scalar.scalar_default_value_type()}
             | {:error, :no_such_field | :no_default_value}
-    def default(:hi) do
-      {:ok, nil}
-    end
-
-    def default(:lo) do
-      {:ok, nil}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
+    def default(field_name), do: Protox.MessageSchema.default(@schema, field_name)
   )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        hi: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: nil},
-          label: :optional,
-          name: :hi,
-          tag: 2,
-          type: {:message, Routeguide.Point}
-        },
-        lo: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: nil},
-          label: :optional,
-          name: :lo,
-          tag: 1,
-          type: {:message, Routeguide.Point}
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: nil,
-        deprecated: nil,
-        go_package: nil,
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "RouteGuideProto",
-        java_package: "io.grpc.examples.routeguide",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: Routeguide.Rectangle,
-      syntax: :proto3
-    }
-  end
 end
 
 defmodule Routeguide.RouteNote do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
+    Protox.check_generator_version(2)
   else
     raise "This code was generated with protox 2 but the runtime is using an older version of protox."
   end
@@ -250,6 +251,42 @@ defmodule Routeguide.RouteNote do
   defstruct message: "", location: nil, __uf__: []
 
   (
+    @schema Protox.MessageSchema.expand!(
+              Routeguide.RouteNote,
+              :proto3,
+              [
+                {:location, 1, :optional, {:scalar, nil}, {:message, Routeguide.Point}},
+                {:message, 2, :optional, {:scalar, ""}, :string}
+              ],
+              %{
+                cc_enable_arenas: nil,
+                cc_generic_services: nil,
+                csharp_namespace: nil,
+                deprecated: nil,
+                go_package: nil,
+                java_generate_equals_and_hash: nil,
+                java_generic_services: nil,
+                java_multiple_files: true,
+                java_outer_classname: "RouteGuideProto",
+                java_package: "io.grpc.examples.routeguide",
+                java_string_check_utf8: nil,
+                objc_class_prefix: "RTG",
+                optimize_for: nil,
+                php_class_prefix: nil,
+                php_generic_services: nil,
+                php_metadata_namespace: nil,
+                php_namespace: nil,
+                py_generic_services: nil,
+                ruby_package: nil,
+                swift_prefix: nil,
+                uninterpreted_option: []
+              }
+            )
+    @spec schema() :: Protox.MessageSchema.t()
+    def schema(), do: @schema
+  )
+
+  (
     (
       @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
       def encode(msg) do
@@ -260,60 +297,64 @@ defmodule Routeguide.RouteNote do
 
       @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
       def encode!(msg) do
-        {_acc = [], _acc_size = 0}
-        |> encode_message(msg)
-        |> encode_location(msg)
-        |> encode_unknown_fields(msg)
+        encode_internal!(msg)
+      rescue
+        e in [Protox.EncodingError, Protox.RequiredFieldsError] ->
+          reraise e, __STACKTRACE__
+
+        e ->
+          encode_diagnose!(msg)
+          reraise e, __STACKTRACE__
+      end
+
+      @doc false
+      def encode_internal!(msg) do
+        {[], 0} |> encode_message(msg) |> encode_location(msg) |> encode_unknown_fields(msg)
       end
     )
 
     defp encode_message({acc, acc_size}, msg) do
-      if msg.message == "" do
+      if :erlang.map_get(:message, msg) == "" do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_string(msg.message)
-        {["\x12", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          delimited = :erlang.map_get(:message, msg)
+          delimited_prefix = Protox.Encode.encode_string_prefix(delimited)
+        )
+
+        {["\x12", delimited_prefix, delimited | acc],
+         acc_size + 1 + (byte_size(delimited_prefix) + byte_size(delimited))}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:message, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_location({acc, acc_size}, msg) do
-      if msg.location == nil do
+      if :erlang.map_get(:location, msg) == nil do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_message(msg.location)
-        {["\n", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          %{__struct__: Routeguide.Point} = child = :erlang.map_get(:location, msg)
+          {child_bytes, child_size} = Routeguide.Point.encode_internal!(child)
+          child_size_bytes = Protox.Varint.encode(child_size)
+        )
+
+        {["\n", child_size_bytes, child_bytes | acc],
+         acc_size + 1 + (byte_size(child_size_bytes) + child_size)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:location, "invalid field value"), __STACKTRACE__
     end
 
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+    (
+      defp encode_diagnose!(%{__struct__: __MODULE__} = msg) do
+        Protox.Encode.find_invalid_field!(msg, [
+          {:message, &encode_message/2, nil},
+          {:location, &encode_location/2, Routeguide.Point}
+        ])
+      end
 
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+      defp encode_diagnose!(_malformed_input), do: :ok
+    )
 
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
+    defp encode_unknown_fields(acc, msg) do
+      Protox.Encode.encode_unknown_fields(acc, :erlang.map_get(:__uf__, msg))
     end
   )
 
@@ -329,153 +370,94 @@ defmodule Routeguide.RouteNote do
 
       (
         @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(bytes, struct(Routeguide.RouteNote))
-        end
+        def decode!(bytes), do: parse_key_value(bytes, __struct__())
       )
     )
 
     (
       @spec parse_key_value(binary(), struct()) :: struct()
       defp parse_key_value(<<>>, msg) do
-        msg
+        case :erlang.map_get(:__uf__, msg) do
+          [_first, _second | _tail] = values -> %{msg | __uf__: :lists.reverse(values)}
+          _empty_or_single -> msg
+        end
       end
 
       defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
+        case bytes do
+          <<_tag::5, 3::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 3")
 
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
+          <<_tag::5, 4::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 4")
 
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
+          <<_tag::5, 6::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 6")
 
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
+          <<_tag::5, 7::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 7")
 
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
+          <<0::5, _wire_type::3, _rest::binary>> ->
+            raise %Protox.IllegalTagError{}
 
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-              {[message: Protox.Decode.validate_string!(delimited)], rest}
+          <<"\x12", bytes::binary>> ->
+            {delimited, rest} = Protox.Decode.parse_delimited(bytes)
+            msg = %{msg | message: Protox.Decode.validate_string!(delimited)}
+            parse_key_value(rest, msg)
 
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
+          <<"\n", bytes::binary>> ->
+            {delimited, rest} = Protox.Decode.parse_delimited(bytes)
 
-              {[
-                 location:
-                   Protox.MergeMessage.merge(msg.location, Routeguide.Point.decode!(delimited))
-               ], rest}
+            msg = %{
+              msg
+              | location:
+                  case :erlang.map_get(:location, msg) do
+                    nil ->
+                      Routeguide.Point.decode!(delimited)
 
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
+                    previous_value ->
+                      Protox.MergeMessage.merge(
+                        previous_value,
+                        Routeguide.Point.decode!(delimited)
+                      )
+                  end
+            }
 
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
+            parse_key_value(rest, msg)
+
+          <<bytes::binary>> ->
+            {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
+            {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
+            msg = %{msg | __uf__: [value | :erlang.map_get(:__uf__, msg)]}
+            parse_key_value(rest, msg)
+        end
       end
     )
   )
 
   (
     @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
+    def unknown_fields(msg), do: msg.__uf__
 
     @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
+    def unknown_fields_name(), do: :__uf__
 
     @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
+    def clear_unknown_fields(msg), do: struct!(msg, __uf__: [])
   )
 
   (
     @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
+            {:ok, Protox.Scalar.scalar_default_value_type()}
             | {:error, :no_such_field | :no_default_value}
-    def default(:message) do
-      {:ok, ""}
-    end
-
-    def default(:location) do
-      {:ok, nil}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
+    def default(field_name), do: Protox.MessageSchema.default(@schema, field_name)
   )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        location: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: nil},
-          label: :optional,
-          name: :location,
-          tag: 1,
-          type: {:message, Routeguide.Point}
-        },
-        message: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: ""},
-          label: :optional,
-          name: :message,
-          tag: 2,
-          type: :string
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: nil,
-        deprecated: nil,
-        go_package: nil,
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "RouteGuideProto",
-        java_package: "io.grpc.examples.routeguide",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: Routeguide.RouteNote,
-      syntax: :proto3
-    }
-  end
 end
 
 defmodule Routeguide.RouteSummary do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
+    Protox.check_generator_version(2)
   else
     raise "This code was generated with protox 2 but the runtime is using an older version of protox."
   end
@@ -490,6 +472,44 @@ defmodule Routeguide.RouteSummary do
   defstruct elapsed_time: 0, distance: 0, feature_count: 0, point_count: 0, __uf__: []
 
   (
+    @schema Protox.MessageSchema.expand!(
+              Routeguide.RouteSummary,
+              :proto3,
+              [
+                {:distance, 3, :optional, {:scalar, 0}, :int32},
+                {:elapsed_time, 4, :optional, {:scalar, 0}, :int32},
+                {:feature_count, 2, :optional, {:scalar, 0}, :int32},
+                {:point_count, 1, :optional, {:scalar, 0}, :int32}
+              ],
+              %{
+                cc_enable_arenas: nil,
+                cc_generic_services: nil,
+                csharp_namespace: nil,
+                deprecated: nil,
+                go_package: nil,
+                java_generate_equals_and_hash: nil,
+                java_generic_services: nil,
+                java_multiple_files: true,
+                java_outer_classname: "RouteGuideProto",
+                java_package: "io.grpc.examples.routeguide",
+                java_string_check_utf8: nil,
+                objc_class_prefix: "RTG",
+                optimize_for: nil,
+                php_class_prefix: nil,
+                php_generic_services: nil,
+                php_metadata_namespace: nil,
+                php_namespace: nil,
+                py_generic_services: nil,
+                ruby_package: nil,
+                swift_prefix: nil,
+                uninterpreted_option: []
+              }
+            )
+    @spec schema() :: Protox.MessageSchema.t()
+    def schema(), do: @schema
+  )
+
+  (
     (
       @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
       def encode(msg) do
@@ -500,7 +520,19 @@ defmodule Routeguide.RouteSummary do
 
       @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
       def encode!(msg) do
-        {_acc = [], _acc_size = 0}
+        encode_internal!(msg)
+      rescue
+        e in [Protox.EncodingError, Protox.RequiredFieldsError] ->
+          reraise e, __STACKTRACE__
+
+        e ->
+          encode_diagnose!(msg)
+          reraise e, __STACKTRACE__
+      end
+
+      @doc false
+      def encode_internal!(msg) do
+        {[], 0}
         |> encode_elapsed_time(msg)
         |> encode_distance(msg)
         |> encode_feature_count(msg)
@@ -510,76 +542,96 @@ defmodule Routeguide.RouteSummary do
     )
 
     defp encode_elapsed_time({acc, acc_size}, msg) do
-      if msg.elapsed_time == 0 do
+      if :erlang.map_get(:elapsed_time, msg) == 0 do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int32(msg.elapsed_time)
-        {[" ", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          value = :erlang.map_get(:elapsed_time, msg)
+
+          value_bytes =
+            if value >= 0 do
+              Protox.Varint.encode(:erlang.band(value, 4_294_967_295))
+            else
+              Protox.Varint.encode(:erlang.band(value, 18_446_744_073_709_551_615))
+            end
+        )
+
+        {[" ", value_bytes | acc], acc_size + 1 + byte_size(value_bytes)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:elapsed_time, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_distance({acc, acc_size}, msg) do
-      if msg.distance == 0 do
+      if :erlang.map_get(:distance, msg) == 0 do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int32(msg.distance)
-        {["\x18", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          value = :erlang.map_get(:distance, msg)
+
+          value_bytes =
+            if value >= 0 do
+              Protox.Varint.encode(:erlang.band(value, 4_294_967_295))
+            else
+              Protox.Varint.encode(:erlang.band(value, 18_446_744_073_709_551_615))
+            end
+        )
+
+        {["\x18", value_bytes | acc], acc_size + 1 + byte_size(value_bytes)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:distance, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_feature_count({acc, acc_size}, msg) do
-      if msg.feature_count == 0 do
+      if :erlang.map_get(:feature_count, msg) == 0 do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int32(msg.feature_count)
-        {["\x10", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          value = :erlang.map_get(:feature_count, msg)
+
+          value_bytes =
+            if value >= 0 do
+              Protox.Varint.encode(:erlang.band(value, 4_294_967_295))
+            else
+              Protox.Varint.encode(:erlang.band(value, 18_446_744_073_709_551_615))
+            end
+        )
+
+        {["\x10", value_bytes | acc], acc_size + 1 + byte_size(value_bytes)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:feature_count, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_point_count({acc, acc_size}, msg) do
-      if msg.point_count == 0 do
+      if :erlang.map_get(:point_count, msg) == 0 do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int32(msg.point_count)
-        {["\b", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          value = :erlang.map_get(:point_count, msg)
+
+          value_bytes =
+            if value >= 0 do
+              Protox.Varint.encode(:erlang.band(value, 4_294_967_295))
+            else
+              Protox.Varint.encode(:erlang.band(value, 18_446_744_073_709_551_615))
+            end
+        )
+
+        {["\b", value_bytes | acc], acc_size + 1 + byte_size(value_bytes)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:point_count, "invalid field value"), __STACKTRACE__
     end
 
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+    (
+      defp encode_diagnose!(%{__struct__: __MODULE__} = msg) do
+        Protox.Encode.find_invalid_field!(msg, [
+          {:elapsed_time, &encode_elapsed_time/2, nil},
+          {:distance, &encode_distance/2, nil},
+          {:feature_count, &encode_feature_count/2, nil},
+          {:point_count, &encode_point_count/2, nil}
+        ])
+      end
 
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+      defp encode_diagnose!(_malformed_input), do: :ok
+    )
 
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
+    defp encode_unknown_fields(acc, msg) do
+      Protox.Encode.encode_unknown_fields(acc, :erlang.map_get(:__uf__, msg))
     end
   )
 
@@ -595,181 +647,109 @@ defmodule Routeguide.RouteSummary do
 
       (
         @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(bytes, struct(Routeguide.RouteSummary))
-        end
+        def decode!(bytes), do: parse_key_value(bytes, __struct__())
       )
     )
 
     (
       @spec parse_key_value(binary(), struct()) :: struct()
       defp parse_key_value(<<>>, msg) do
-        msg
+        case :erlang.map_get(:__uf__, msg) do
+          [_first, _second | _tail] = values -> %{msg | __uf__: :lists.reverse(values)}
+          _empty_or_single -> msg
+        end
       end
 
       defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
+        case bytes do
+          <<_tag::5, 3::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 3")
 
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
+          <<_tag::5, 4::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 4")
 
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
+          <<_tag::5, 6::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 6")
 
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
+          <<_tag::5, 7::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 7")
 
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
+          <<0::5, _wire_type::3, _rest::binary>> ->
+            raise %Protox.IllegalTagError{}
 
-            <<4::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int32(bytes)
-              {[elapsed_time: value], rest}
+          <<" ", 0::1, varint_value::7, rest::binary>> ->
+            value = varint_value
+            msg = %{msg | elapsed_time: value}
+            parse_key_value(rest, msg)
 
-            <<3::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int32(bytes)
-              {[distance: value], rest}
+          <<" ", bytes::binary>> ->
+            {value, rest} = Protox.Decode.parse_int32(bytes)
+            msg = %{msg | elapsed_time: value}
+            parse_key_value(rest, msg)
 
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int32(bytes)
-              {[feature_count: value], rest}
+          <<"\x18", 0::1, varint_value::7, rest::binary>> ->
+            value = varint_value
+            msg = %{msg | distance: value}
+            parse_key_value(rest, msg)
 
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int32(bytes)
-              {[point_count: value], rest}
+          <<"\x18", bytes::binary>> ->
+            {value, rest} = Protox.Decode.parse_int32(bytes)
+            msg = %{msg | distance: value}
+            parse_key_value(rest, msg)
 
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
+          <<"\x10", 0::1, varint_value::7, rest::binary>> ->
+            value = varint_value
+            msg = %{msg | feature_count: value}
+            parse_key_value(rest, msg)
 
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
+          <<"\x10", bytes::binary>> ->
+            {value, rest} = Protox.Decode.parse_int32(bytes)
+            msg = %{msg | feature_count: value}
+            parse_key_value(rest, msg)
+
+          <<"\b", 0::1, varint_value::7, rest::binary>> ->
+            value = varint_value
+            msg = %{msg | point_count: value}
+            parse_key_value(rest, msg)
+
+          <<"\b", bytes::binary>> ->
+            {value, rest} = Protox.Decode.parse_int32(bytes)
+            msg = %{msg | point_count: value}
+            parse_key_value(rest, msg)
+
+          <<bytes::binary>> ->
+            {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
+            {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
+            msg = %{msg | __uf__: [value | :erlang.map_get(:__uf__, msg)]}
+            parse_key_value(rest, msg)
+        end
       end
     )
   )
 
   (
     @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
+    def unknown_fields(msg), do: msg.__uf__
 
     @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
+    def unknown_fields_name(), do: :__uf__
 
     @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
+    def clear_unknown_fields(msg), do: struct!(msg, __uf__: [])
   )
 
   (
     @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
+            {:ok, Protox.Scalar.scalar_default_value_type()}
             | {:error, :no_such_field | :no_default_value}
-    def default(:elapsed_time) do
-      {:ok, 0}
-    end
-
-    def default(:distance) do
-      {:ok, 0}
-    end
-
-    def default(:feature_count) do
-      {:ok, 0}
-    end
-
-    def default(:point_count) do
-      {:ok, 0}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
+    def default(field_name), do: Protox.MessageSchema.default(@schema, field_name)
   )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        distance: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :distance,
-          tag: 3,
-          type: :int32
-        },
-        elapsed_time: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :elapsed_time,
-          tag: 4,
-          type: :int32
-        },
-        feature_count: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :feature_count,
-          tag: 2,
-          type: :int32
-        },
-        point_count: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :point_count,
-          tag: 1,
-          type: :int32
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: nil,
-        deprecated: nil,
-        go_package: nil,
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "RouteGuideProto",
-        java_package: "io.grpc.examples.routeguide",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: Routeguide.RouteSummary,
-      syntax: :proto3
-    }
-  end
 end
 
 defmodule Routeguide.Feature do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
+    Protox.check_generator_version(2)
   else
     raise "This code was generated with protox 2 but the runtime is using an older version of protox."
   end
@@ -782,6 +762,42 @@ defmodule Routeguide.Feature do
   defstruct location: nil, name: "", __uf__: []
 
   (
+    @schema Protox.MessageSchema.expand!(
+              Routeguide.Feature,
+              :proto3,
+              [
+                {:location, 2, :optional, {:scalar, nil}, {:message, Routeguide.Point}},
+                {:name, 1, :optional, {:scalar, ""}, :string}
+              ],
+              %{
+                cc_enable_arenas: nil,
+                cc_generic_services: nil,
+                csharp_namespace: nil,
+                deprecated: nil,
+                go_package: nil,
+                java_generate_equals_and_hash: nil,
+                java_generic_services: nil,
+                java_multiple_files: true,
+                java_outer_classname: "RouteGuideProto",
+                java_package: "io.grpc.examples.routeguide",
+                java_string_check_utf8: nil,
+                objc_class_prefix: "RTG",
+                optimize_for: nil,
+                php_class_prefix: nil,
+                php_generic_services: nil,
+                php_metadata_namespace: nil,
+                php_namespace: nil,
+                py_generic_services: nil,
+                ruby_package: nil,
+                swift_prefix: nil,
+                uninterpreted_option: []
+              }
+            )
+    @spec schema() :: Protox.MessageSchema.t()
+    def schema(), do: @schema
+  )
+
+  (
     (
       @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
       def encode(msg) do
@@ -792,60 +808,64 @@ defmodule Routeguide.Feature do
 
       @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
       def encode!(msg) do
-        {_acc = [], _acc_size = 0}
-        |> encode_location(msg)
-        |> encode_name(msg)
-        |> encode_unknown_fields(msg)
+        encode_internal!(msg)
+      rescue
+        e in [Protox.EncodingError, Protox.RequiredFieldsError] ->
+          reraise e, __STACKTRACE__
+
+        e ->
+          encode_diagnose!(msg)
+          reraise e, __STACKTRACE__
+      end
+
+      @doc false
+      def encode_internal!(msg) do
+        {[], 0} |> encode_location(msg) |> encode_name(msg) |> encode_unknown_fields(msg)
       end
     )
 
     defp encode_location({acc, acc_size}, msg) do
-      if msg.location == nil do
+      if :erlang.map_get(:location, msg) == nil do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_message(msg.location)
-        {["\x12", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          %{__struct__: Routeguide.Point} = child = :erlang.map_get(:location, msg)
+          {child_bytes, child_size} = Routeguide.Point.encode_internal!(child)
+          child_size_bytes = Protox.Varint.encode(child_size)
+        )
+
+        {["\x12", child_size_bytes, child_bytes | acc],
+         acc_size + 1 + (byte_size(child_size_bytes) + child_size)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:location, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_name({acc, acc_size}, msg) do
-      if msg.name == "" do
+      if :erlang.map_get(:name, msg) == "" do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_string(msg.name)
-        {["\n", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          delimited = :erlang.map_get(:name, msg)
+          delimited_prefix = Protox.Encode.encode_string_prefix(delimited)
+        )
+
+        {["\n", delimited_prefix, delimited | acc],
+         acc_size + 1 + (byte_size(delimited_prefix) + byte_size(delimited))}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:name, "invalid field value"), __STACKTRACE__
     end
 
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+    (
+      defp encode_diagnose!(%{__struct__: __MODULE__} = msg) do
+        Protox.Encode.find_invalid_field!(msg, [
+          {:location, &encode_location/2, Routeguide.Point},
+          {:name, &encode_name/2, nil}
+        ])
+      end
 
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+      defp encode_diagnose!(_malformed_input), do: :ok
+    )
 
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
+    defp encode_unknown_fields(acc, msg) do
+      Protox.Encode.encode_unknown_fields(acc, :erlang.map_get(:__uf__, msg))
     end
   )
 
@@ -861,153 +881,94 @@ defmodule Routeguide.Feature do
 
       (
         @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(bytes, struct(Routeguide.Feature))
-        end
+        def decode!(bytes), do: parse_key_value(bytes, __struct__())
       )
     )
 
     (
       @spec parse_key_value(binary(), struct()) :: struct()
       defp parse_key_value(<<>>, msg) do
-        msg
+        case :erlang.map_get(:__uf__, msg) do
+          [_first, _second | _tail] = values -> %{msg | __uf__: :lists.reverse(values)}
+          _empty_or_single -> msg
+        end
       end
 
       defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
+        case bytes do
+          <<_tag::5, 3::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 3")
 
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
+          <<_tag::5, 4::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 4")
 
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
+          <<_tag::5, 6::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 6")
 
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
+          <<_tag::5, 7::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 7")
 
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
+          <<0::5, _wire_type::3, _rest::binary>> ->
+            raise %Protox.IllegalTagError{}
 
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
+          <<"\x12", bytes::binary>> ->
+            {delimited, rest} = Protox.Decode.parse_delimited(bytes)
 
-              {[
-                 location:
-                   Protox.MergeMessage.merge(msg.location, Routeguide.Point.decode!(delimited))
-               ], rest}
+            msg = %{
+              msg
+              | location:
+                  case :erlang.map_get(:location, msg) do
+                    nil ->
+                      Routeguide.Point.decode!(delimited)
 
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {len, bytes} = Protox.Varint.decode(bytes)
-              {delimited, rest} = Protox.Decode.parse_delimited(bytes, len)
-              {[name: Protox.Decode.validate_string!(delimited)], rest}
+                    previous_value ->
+                      Protox.MergeMessage.merge(
+                        previous_value,
+                        Routeguide.Point.decode!(delimited)
+                      )
+                  end
+            }
 
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
+            parse_key_value(rest, msg)
 
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
+          <<"\n", bytes::binary>> ->
+            {delimited, rest} = Protox.Decode.parse_delimited(bytes)
+            msg = %{msg | name: Protox.Decode.validate_string!(delimited)}
+            parse_key_value(rest, msg)
+
+          <<bytes::binary>> ->
+            {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
+            {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
+            msg = %{msg | __uf__: [value | :erlang.map_get(:__uf__, msg)]}
+            parse_key_value(rest, msg)
+        end
       end
     )
   )
 
   (
     @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
+    def unknown_fields(msg), do: msg.__uf__
 
     @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
+    def unknown_fields_name(), do: :__uf__
 
     @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
+    def clear_unknown_fields(msg), do: struct!(msg, __uf__: [])
   )
 
   (
     @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
+            {:ok, Protox.Scalar.scalar_default_value_type()}
             | {:error, :no_such_field | :no_default_value}
-    def default(:location) do
-      {:ok, nil}
-    end
-
-    def default(:name) do
-      {:ok, ""}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
+    def default(field_name), do: Protox.MessageSchema.default(@schema, field_name)
   )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        location: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: nil},
-          label: :optional,
-          name: :location,
-          tag: 2,
-          type: {:message, Routeguide.Point}
-        },
-        name: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: ""},
-          label: :optional,
-          name: :name,
-          tag: 1,
-          type: :string
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: nil,
-        deprecated: nil,
-        go_package: nil,
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "RouteGuideProto",
-        java_package: "io.grpc.examples.routeguide",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: Routeguide.Feature,
-      syntax: :proto3
-    }
-  end
 end
 
 defmodule Routeguide.Point do
   @moduledoc false
   if function_exported?(Protox, :check_generator_version, 1) do
-    Protox.check_generator_version(1)
+    Protox.check_generator_version(2)
   else
     raise "This code was generated with protox 2 but the runtime is using an older version of protox."
   end
@@ -1020,6 +981,42 @@ defmodule Routeguide.Point do
   defstruct longitude: 0, latitude: 0, __uf__: []
 
   (
+    @schema Protox.MessageSchema.expand!(
+              Routeguide.Point,
+              :proto3,
+              [
+                {:latitude, 1, :optional, {:scalar, 0}, :int32},
+                {:longitude, 2, :optional, {:scalar, 0}, :int32}
+              ],
+              %{
+                cc_enable_arenas: nil,
+                cc_generic_services: nil,
+                csharp_namespace: nil,
+                deprecated: nil,
+                go_package: nil,
+                java_generate_equals_and_hash: nil,
+                java_generic_services: nil,
+                java_multiple_files: true,
+                java_outer_classname: "RouteGuideProto",
+                java_package: "io.grpc.examples.routeguide",
+                java_string_check_utf8: nil,
+                objc_class_prefix: "RTG",
+                optimize_for: nil,
+                php_class_prefix: nil,
+                php_generic_services: nil,
+                php_metadata_namespace: nil,
+                php_namespace: nil,
+                py_generic_services: nil,
+                ruby_package: nil,
+                swift_prefix: nil,
+                uninterpreted_option: []
+              }
+            )
+    @spec schema() :: Protox.MessageSchema.t()
+    def schema(), do: @schema
+  )
+
+  (
     (
       @spec encode(t()) :: {:ok, iodata(), non_neg_integer()} | {:error, any()}
       def encode(msg) do
@@ -1030,60 +1027,73 @@ defmodule Routeguide.Point do
 
       @spec encode!(t()) :: {iodata(), non_neg_integer()} | no_return()
       def encode!(msg) do
-        {_acc = [], _acc_size = 0}
-        |> encode_longitude(msg)
-        |> encode_latitude(msg)
-        |> encode_unknown_fields(msg)
+        encode_internal!(msg)
+      rescue
+        e in [Protox.EncodingError, Protox.RequiredFieldsError] ->
+          reraise e, __STACKTRACE__
+
+        e ->
+          encode_diagnose!(msg)
+          reraise e, __STACKTRACE__
+      end
+
+      @doc false
+      def encode_internal!(msg) do
+        {[], 0} |> encode_longitude(msg) |> encode_latitude(msg) |> encode_unknown_fields(msg)
       end
     )
 
     defp encode_longitude({acc, acc_size}, msg) do
-      if msg.longitude == 0 do
+      if :erlang.map_get(:longitude, msg) == 0 do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int32(msg.longitude)
-        {["\x10", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          value = :erlang.map_get(:longitude, msg)
+
+          value_bytes =
+            if value >= 0 do
+              Protox.Varint.encode(:erlang.band(value, 4_294_967_295))
+            else
+              Protox.Varint.encode(:erlang.band(value, 18_446_744_073_709_551_615))
+            end
+        )
+
+        {["\x10", value_bytes | acc], acc_size + 1 + byte_size(value_bytes)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:longitude, "invalid field value"), __STACKTRACE__
     end
 
     defp encode_latitude({acc, acc_size}, msg) do
-      if msg.latitude == 0 do
+      if :erlang.map_get(:latitude, msg) == 0 do
         {acc, acc_size}
       else
-        {value_bytes, value_bytes_size} = Protox.Encode.encode_int32(msg.latitude)
-        {["\b", value_bytes | acc], acc_size + 1 + value_bytes_size}
+        (
+          value = :erlang.map_get(:latitude, msg)
+
+          value_bytes =
+            if value >= 0 do
+              Protox.Varint.encode(:erlang.band(value, 4_294_967_295))
+            else
+              Protox.Varint.encode(:erlang.band(value, 18_446_744_073_709_551_615))
+            end
+        )
+
+        {["\b", value_bytes | acc], acc_size + 1 + byte_size(value_bytes)}
       end
-    rescue
-      ArgumentError ->
-        reraise Protox.EncodingError.new(:latitude, "invalid field value"), __STACKTRACE__
     end
 
-    defp encode_unknown_fields({acc, acc_size}, msg) do
-      Enum.reduce(msg.__uf__, {acc, acc_size}, fn {tag, wire_type, bytes}, {acc, acc_size} ->
-        case wire_type do
-          0 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :int32)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+    (
+      defp encode_diagnose!(%{__struct__: __MODULE__} = msg) do
+        Protox.Encode.find_invalid_field!(msg, [
+          {:longitude, &encode_longitude/2, nil},
+          {:latitude, &encode_latitude/2, nil}
+        ])
+      end
 
-          1 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :double)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
+      defp encode_diagnose!(_malformed_input), do: :ok
+    )
 
-          2 ->
-            {len_bytes, len_size} = bytes |> byte_size() |> Protox.Varint.encode()
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :packed)
-
-            {[acc, <<key_bytes::binary, len_bytes::binary, bytes::binary>>],
-             acc_size + key_size + len_size + byte_size(bytes)}
-
-          5 ->
-            {key_bytes, key_size} = Protox.Encode.make_key_bytes(tag, :float)
-            {[acc, <<key_bytes::binary, bytes::binary>>], acc_size + key_size + byte_size(bytes)}
-        end
-      end)
+    defp encode_unknown_fields(acc, msg) do
+      Protox.Encode.encode_unknown_fields(acc, :erlang.map_get(:__uf__, msg))
     end
   )
 
@@ -1099,139 +1109,81 @@ defmodule Routeguide.Point do
 
       (
         @spec decode!(binary()) :: t() | no_return()
-        def decode!(bytes) do
-          parse_key_value(bytes, struct(Routeguide.Point))
-        end
+        def decode!(bytes), do: parse_key_value(bytes, __struct__())
       )
     )
 
     (
       @spec parse_key_value(binary(), struct()) :: struct()
       defp parse_key_value(<<>>, msg) do
-        msg
+        case :erlang.map_get(:__uf__, msg) do
+          [_first, _second | _tail] = values -> %{msg | __uf__: :lists.reverse(values)}
+          _empty_or_single -> msg
+        end
       end
 
       defp parse_key_value(bytes, msg) do
-        {field, rest} =
-          case bytes do
-            <<_::5, 3::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 3")
+        case bytes do
+          <<_tag::5, 3::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 3")
 
-            <<_::5, 4::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 4")
+          <<_tag::5, 4::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 4")
 
-            <<_::5, 6::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 6")
+          <<_tag::5, 6::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 6")
 
-            <<_::5, 7::3, _rest::binary>> ->
-              raise Protox.DecodingError.new(bytes, "invalid wire type 7")
+          <<_tag::5, 7::3, _rest::binary>> ->
+            raise Protox.DecodingError.new(bytes, "invalid wire type 7")
 
-            <<0::5, _::3, _rest::binary>> ->
-              raise %Protox.IllegalTagError{}
+          <<0::5, _wire_type::3, _rest::binary>> ->
+            raise %Protox.IllegalTagError{}
 
-            <<2::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int32(bytes)
-              {[longitude: value], rest}
+          <<"\x10", 0::1, varint_value::7, rest::binary>> ->
+            value = varint_value
+            msg = %{msg | longitude: value}
+            parse_key_value(rest, msg)
 
-            <<1::5, _wire_type::3, bytes::binary>> ->
-              {value, rest} = Protox.Decode.parse_int32(bytes)
-              {[latitude: value], rest}
+          <<"\x10", bytes::binary>> ->
+            {value, rest} = Protox.Decode.parse_int32(bytes)
+            msg = %{msg | longitude: value}
+            parse_key_value(rest, msg)
 
-            <<bytes::binary>> ->
-              {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
-              {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
-              {[__uf__: msg.__uf__ ++ [value]], rest}
-          end
+          <<"\b", 0::1, varint_value::7, rest::binary>> ->
+            value = varint_value
+            msg = %{msg | latitude: value}
+            parse_key_value(rest, msg)
 
-        msg_updated = struct(msg, field)
-        parse_key_value(rest, msg_updated)
+          <<"\b", bytes::binary>> ->
+            {value, rest} = Protox.Decode.parse_int32(bytes)
+            msg = %{msg | latitude: value}
+            parse_key_value(rest, msg)
+
+          <<bytes::binary>> ->
+            {tag, wire_type, rest} = Protox.Decode.parse_key(bytes)
+            {value, rest} = Protox.Decode.parse_unknown(tag, wire_type, rest)
+            msg = %{msg | __uf__: [value | :erlang.map_get(:__uf__, msg)]}
+            parse_key_value(rest, msg)
+        end
       end
     )
   )
 
   (
     @spec unknown_fields(struct()) :: [{non_neg_integer(), Protox.Types.tag(), binary()}]
-    def unknown_fields(msg) do
-      msg.__uf__
-    end
+    def unknown_fields(msg), do: msg.__uf__
 
     @spec unknown_fields_name() :: :__uf__
-    def unknown_fields_name() do
-      :__uf__
-    end
+    def unknown_fields_name(), do: :__uf__
 
     @spec clear_unknown_fields(struct) :: struct
-    def clear_unknown_fields(msg) do
-      struct!(msg, __uf__: [])
-    end
+    def clear_unknown_fields(msg), do: struct!(msg, __uf__: [])
   )
 
   (
     @spec default(atom()) ::
-            {:ok, boolean() | integer() | String.t() | float()}
+            {:ok, Protox.Scalar.scalar_default_value_type()}
             | {:error, :no_such_field | :no_default_value}
-    def default(:longitude) do
-      {:ok, 0}
-    end
-
-    def default(:latitude) do
-      {:ok, 0}
-    end
-
-    def default(_) do
-      {:error, :no_such_field}
-    end
+    def default(field_name), do: Protox.MessageSchema.default(@schema, field_name)
   )
-
-  @spec schema() :: Protox.MessageSchema.t()
-  def schema() do
-    %{
-      __struct__: Protox.MessageSchema,
-      fields: %{
-        latitude: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :latitude,
-          tag: 1,
-          type: :int32
-        },
-        longitude: %{
-          __struct__: Protox.Field,
-          extender: nil,
-          kind: %{__struct__: Protox.Scalar, default_value: 0},
-          label: :optional,
-          name: :longitude,
-          tag: 2,
-          type: :int32
-        }
-      },
-      file_options: %{
-        cc_enable_arenas: nil,
-        cc_generic_services: nil,
-        csharp_namespace: nil,
-        deprecated: nil,
-        go_package: nil,
-        java_generate_equals_and_hash: nil,
-        java_generic_services: nil,
-        java_multiple_files: true,
-        java_outer_classname: "RouteGuideProto",
-        java_package: "io.grpc.examples.routeguide",
-        java_string_check_utf8: nil,
-        objc_class_prefix: nil,
-        optimize_for: nil,
-        php_class_prefix: nil,
-        php_generic_services: nil,
-        php_metadata_namespace: nil,
-        php_namespace: nil,
-        py_generic_services: nil,
-        ruby_package: nil,
-        swift_prefix: nil,
-        uninterpreted_option: []
-      },
-      name: Routeguide.Point,
-      syntax: :proto3
-    }
-  end
 end
