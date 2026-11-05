@@ -1,6 +1,14 @@
 # GrpcClient
 
-This is a gRPC client based on the one in [Spear](https://github.com/NFIBrokerage/spear/), using Mint. It is currently in alpha stage.
+This is a gRPC client based on the one in [Spear](https://github.com/NFIBrokerage/spear/), using Mint. It is currently in beta stage; API changes are still possible before a stable release.
+
+## Installation
+
+Add the first beta release to your dependencies in `mix.exs`:
+
+```elixir
+{:grpc_client, "~> 0.2.0-beta.1"}
+```
 
 ## Example
 ```elixir
