@@ -38,7 +38,7 @@ defmodule GrpcClient.MixProject do
   defp deps do
     [
       {:mint, "~> 1.4"},
-      {:nimble_options, "~> 1.1.1"},
+      {:nimble_options, "~> 1.1"},
       {:protox, "~> 2.0"},
       {:toxiproxy_ex, "~> 2.0", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
