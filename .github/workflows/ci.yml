@@ -26,22 +26,22 @@ jobs:
       matrix:
         include:
           - pair:
-              elixir: "1.16.3"
-              otp: "26.2.5.3"
-          - pair:
               elixir: "1.17.3"
               otp: "27.1"
           - pair:
               elixir: "1.18.3"
               otp: "27.3"
           - pair:
-              elixir: "1.19.0"
+              elixir: "1.19"
               otp: "28.1"
+          - pair:
+              elixir: "1.20"
+              otp: "29.1"
               lint: lint
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7.0.1
     - name: Install uv
-      uses: astral-sh/setup-uv@v7
+      uses: astral-sh/setup-uv@v10.3.3
     - name: Start Python API Server (Background)
       run: |
         uv run --directory test_server route_guide_server.py &
@@ -52,7 +52,7 @@ jobs:
         elixir-version: ${{ matrix.pair.elixir }}
         version-type: strict
     - name: Restore dependencies cache
-      uses: actions/cache@v4
+      uses: actions/cache@v6.1.0
       with:
         path: deps
         key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
